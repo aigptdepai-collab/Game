@@ -396,6 +396,14 @@ func _restart_level() -> void:
     game_state = "playing"
     for i in range(collected_cells.size()):
         collected_cells[i] = false
+    bullets.clear()
+    enemy_soldiers = [
+        {"x": 720.0, "origin": 720.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.0, "speed": 46.0},
+        {"x": 1450.0, "origin": 1450.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.5, "speed": 52.0},
+        {"x": 2250.0, "origin": 2250.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.4, "speed": 48.0},
+        {"x": 3150.0, "origin": 3150.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.8, "speed": 55.0},
+        {"x": 3900.0, "origin": 3900.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.2, "speed": 50.0}
+    ]
     drones = [
         {"origin": 1020.0, "x": 1020.0, "y": 450.0, "range": 90.0, "speed": 65.0, "dir": 1.0},
         {"origin": 2160.0, "x": 2160.0, "y": 410.0, "range": 105.0, "speed": 78.0, "dir": -1.0},
@@ -529,22 +537,36 @@ func _draw_player() -> void:
     var p: Vector2 = Vector2(player_x - camera_x, player_y)
     if invulnerable_timer > 0.0 and int(elapsed * 14.0) % 2 == 0:
         return
-    var run: float = sin(elapsed * 14.0) * 5.0 if on_floor and absf(_get_move_direction()) > 0.1 else 0.0
+    var run: float = sin(elapsed * 16.0) * 5.0 if on_floor and absf(_get_move_direction()) > 0.1 else 0.0
     _draw_player_shadow_ellipse(p + Vector2(0, PLAYER_HEIGHT + 4), Vector2(24, 6), Color(0, 0, 0, 0.35))
-    draw_line(p + Vector2(-7, 39), p + Vector2(-10 + run, 55), Color("#8bd5e8"), 8.0)
-    draw_line(p + Vector2(7, 39), p + Vector2(10 - run, 55), Color("#8bd5e8"), 8.0)
-    draw_rect(Rect2(p.x - 19 + run, p.y + 52, 17, 7), Color("#15283d"))
-    draw_rect(Rect2(p.x + 3 - run, p.y + 52, 17, 7), Color("#15283d"))
-    draw_rect(Rect2(p.x - 16, p.y + 12, 32, 30), Color("#1c7897"))
-    draw_rect(Rect2(p.x - 16, p.y + 12, 32, 6), Color("#72e7ed"))
-    draw_circle(p + Vector2(-16, 20), 7, Color("#a5f5f0"))
-    draw_circle(p + Vector2(16, 20), 7, Color("#a5f5f0"))
-    draw_circle(p + Vector2(0, 0), 16, Color("#b6d9e6"))
-    draw_rect(Rect2(p.x - 12, p.y - 4, 24, 8), Color("#087eaa"))
-    draw_rect(Rect2(p.x - 8, p.y - 2, 16, 3), Color("#8effff"))
-    var arm_x: float = 20.0 * facing
-    draw_line(p + Vector2(12.0 * facing, 22), p + Vector2(arm_x, 35), Color("#8bd5e8"), 6.0)
-    draw_rect(Rect2(p.x - 23 if facing < 0 else p.x + 15, p.y + 17, 8, 20), Color("#d58b42"))
+    # Combat boots and animated legs
+    draw_line(p + Vector2(-7, 39), p + Vector2(-10 + run, 55), Color("#343d32"), 9.0)
+    draw_line(p + Vector2(7, 39), p + Vector2(10 - run, 55), Color("#343d32"), 9.0)
+    draw_rect(Rect2(p.x - 19 + run, p.y + 51, 18, 7), Color("#1c2526"))
+    draw_rect(Rect2(p.x + 2 - run, p.y + 51, 18, 7), Color("#1c2526"))
+    # Uniform, tactical vest and shoulder pads
+    draw_rect(Rect2(p.x - 16, p.y + 14, 32, 29), Color("#596548"))
+    draw_rect(Rect2(p.x - 11, p.y + 17, 22, 24), Color("#384638"))
+    draw_rect(Rect2(p.x - 17, p.y + 17, 8, 13), Color("#71805a"))
+    draw_rect(Rect2(p.x + 9, p.y + 17, 8, 13), Color("#71805a"))
+    draw_rect(Rect2(p.x - 7, p.y + 23, 14, 12), Color("#263b37"))
+    draw_rect(Rect2(p.x - 5, p.y + 25, 10, 3), Color("#c6a66b"))
+    # Head, helmet and visor
+    draw_rect(Rect2(p.x - 12, p.y - 5, 24, 23), Color("#c69a73"))
+    draw_rect(Rect2(p.x - 15, p.y - 10, 30, 11), Color("#596548"))
+    draw_rect(Rect2(p.x - 10, p.y - 15, 20, 7), Color("#78835c"))
+    draw_rect(Rect2(p.x + 2.0 * facing, p.y + 4, 8, 4), Color("#252b29"))
+    # Arms holding the rifle
+    draw_line(p + Vector2(10.0 * facing, 23), p + Vector2(20.0 * facing, 28), Color("#c69a73"), 7.0)
+    draw_line(p + Vector2(-10.0 * facing, 23), p + Vector2(4.0 * facing, 31), Color("#c69a73"), 7.0)
+    # Rifle points in the facing direction
+    var gun_x: float = p.x + 13.0 * facing
+    draw_rect(Rect2(gun_x if facing > 0.0 else gun_x - 31.0, p.y + 25, 31, 7), Color("#202a2b"))
+    draw_rect(Rect2(gun_x + (25.0 if facing > 0.0 else -35.0), p.y + 27, 10, 3), Color("#8a9b91"))
+    draw_rect(Rect2(p.x - 18 if facing < 0.0 else p.x + 12, p.y + 17, 7, 18), Color("#b18b58"))
+    if muzzle_flash > 0.0:
+        var muzzle: Vector2 = Vector2(p.x + facing * 49.0, p.y + 29.0)
+        draw_colored_polygon(PackedVector2Array([muzzle, muzzle + Vector2(facing * 13.0, -5), muzzle + Vector2(facing * 8.0, 0), muzzle + Vector2(facing * 13.0, 5)]), Color("#fff0a0"))
 
 func _draw_player_shadow_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
     draw_set_transform(center, 0.0, radii)
