@@ -558,7 +558,7 @@ func _draw_player() -> void:
         elif absf(_get_move_direction()) > 0.1:
             row = 1
         var source: Rect2 = Rect2(animation_frame * 256, row * 384, 256, 384)
-        var destination: Rect2 = Rect2(-43, -31, 86, 98)
+        var destination: Rect2 = Rect2(-43, -80, 86, 98)
         draw_set_transform(Vector2(p.x, p.y + PLAYER_HEIGHT), 0.0, Vector2(facing, 1.0))
         draw_texture_rect_region(player_atlas, destination, source, Color.WHITE, false, true)
         draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
