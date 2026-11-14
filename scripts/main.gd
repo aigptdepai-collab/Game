@@ -35,6 +35,9 @@ var particles: Array[Dictionary] = []
 var bullets: Array[Dictionary] = []
 var shoot_cooldown: float = 0.0
 var muzzle_flash: float = 0.0
+var player_atlas: Texture2D
+var animation_clock: float = 0.0
+var animation_frame: int = 0
 var enemy_soldiers: Array[Dictionary] = [
     {"x": 720.0, "origin": 720.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.0, "speed": 46.0},
     {"x": 1450.0, "origin": 1450.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.5, "speed": 52.0},
@@ -85,6 +88,8 @@ var drones: Array[Dictionary] = [
 ]
 
 func _ready() -> void:
+    if ResourceLoader.exists("res://assets/player_atlas.png"):
+        player_atlas = load("res://assets/player_atlas.png") as Texture2D
     collected_cells.resize(cells.size())
     for i in range(collected_cells.size()):
         collected_cells[i] = false
@@ -98,6 +103,9 @@ func _process(delta: float) -> void:
     if damage_flash > 0.0:
         damage_flash = maxf(0.0, damage_flash - delta)
     _update_particles(delta)
+    animation_clock += delta
+    var frame_rate: float = 10.0 if absf(_get_move_direction()) > 0.1 and on_floor else 7.0
+    animation_frame = int(animation_clock * frame_rate) % 4
     queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -540,33 +548,28 @@ func _draw_player() -> void:
     var p: Vector2 = Vector2(player_x - camera_x, player_y)
     if invulnerable_timer > 0.0 and int(elapsed * 14.0) % 2 == 0:
         return
-    var run: float = sin(elapsed * 16.0) * 5.0 if on_floor and absf(_get_move_direction()) > 0.1 else 0.0
-    _draw_player_shadow_ellipse(p + Vector2(0, PLAYER_HEIGHT + 4), Vector2(24, 6), Color(0, 0, 0, 0.35))
-    # Combat boots and animated legs
-    draw_line(p + Vector2(-7, 39), p + Vector2(-10 + run, 55), Color("#343d32"), 9.0)
-    draw_line(p + Vector2(7, 39), p + Vector2(10 - run, 55), Color("#343d32"), 9.0)
-    draw_rect(Rect2(p.x - 19 + run, p.y + 51, 18, 7), Color("#1c2526"))
-    draw_rect(Rect2(p.x + 2 - run, p.y + 51, 18, 7), Color("#1c2526"))
-    # Uniform, tactical vest and shoulder pads
-    draw_rect(Rect2(p.x - 16, p.y + 14, 32, 29), Color("#596548"))
-    draw_rect(Rect2(p.x - 11, p.y + 17, 22, 24), Color("#384638"))
-    draw_rect(Rect2(p.x - 17, p.y + 17, 8, 13), Color("#71805a"))
-    draw_rect(Rect2(p.x + 9, p.y + 17, 8, 13), Color("#71805a"))
-    draw_rect(Rect2(p.x - 7, p.y + 23, 14, 12), Color("#263b37"))
-    draw_rect(Rect2(p.x - 5, p.y + 25, 10, 3), Color("#c6a66b"))
-    # Head, helmet and visor
-    draw_rect(Rect2(p.x - 12, p.y - 5, 24, 23), Color("#c69a73"))
-    draw_rect(Rect2(p.x - 15, p.y - 10, 30, 11), Color("#596548"))
-    draw_rect(Rect2(p.x - 10, p.y - 15, 20, 7), Color("#78835c"))
-    draw_rect(Rect2(p.x + 2.0 * facing, p.y + 4, 8, 4), Color("#252b29"))
-    # Arms holding the rifle
-    draw_line(p + Vector2(10.0 * facing, 23), p + Vector2(20.0 * facing, 28), Color("#c69a73"), 7.0)
-    draw_line(p + Vector2(-10.0 * facing, 23), p + Vector2(4.0 * facing, 31), Color("#c69a73"), 7.0)
-    # Rifle points in the facing direction
-    var gun_x: float = p.x + 13.0 * facing
-    draw_rect(Rect2(gun_x if facing > 0.0 else gun_x - 31.0, p.y + 25, 31, 7), Color("#202a2b"))
-    draw_rect(Rect2(gun_x + (25.0 if facing > 0.0 else -35.0), p.y + 27, 10, 3), Color("#8a9b91"))
-    draw_rect(Rect2(p.x - 18 if facing < 0.0 else p.x + 12, p.y + 17, 7, 18), Color("#b18b58"))
+    _draw_player_shadow_ellipse(p + Vector2(0, PLAYER_HEIGHT + 4), Vector2(25, 6), Color(0, 0, 0, 0.38))
+    if player_atlas != null:
+        var row: int = 0
+        if not on_floor:
+            row = 2
+        elif _shoot_is_down():
+            row = 3
+        elif absf(_get_move_direction()) > 0.1:
+            row = 1
+        var source: Rect2 = Rect2(animation_frame * 256, row * 384, 256, 384)
+        var destination: Rect2 = Rect2(-43, -31, 86, 98)
+        draw_set_transform(Vector2(p.x, p.y + PLAYER_HEIGHT), 0.0, Vector2(facing, 1.0))
+        draw_texture_rect_region(player_atlas, destination, source, Color.WHITE, false, true)
+        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    else:
+        # Temporary fallback until assets/player_atlas.png is added to the project.
+        draw_rect(Rect2(p.x - 16, p.y + 14, 32, 29), Color("#596548"))
+        draw_rect(Rect2(p.x - 12, p.y - 5, 24, 23), Color("#c69a73"))
+        draw_rect(Rect2(p.x - 15, p.y - 10, 30, 11), Color("#596548"))
+        draw_rect(Rect2(p.x - 18, p.y + 25, 38, 7), Color("#202a2b"))
+        draw_line(p + Vector2(-7, 39), p + Vector2(-10, 55), Color("#343d32"), 9.0)
+        draw_line(p + Vector2(7, 39), p + Vector2(10, 55), Color("#343d32"), 9.0)
     if muzzle_flash > 0.0:
         var muzzle: Vector2 = Vector2(p.x + facing * 49.0, p.y + 29.0)
         draw_colored_polygon(PackedVector2Array([muzzle, muzzle + Vector2(facing * 13.0, -5), muzzle + Vector2(facing * 8.0, 0), muzzle + Vector2(facing * 13.0, 5)]), Color("#fff0a0"))
