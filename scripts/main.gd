@@ -1,7 +1,7 @@
 extends Node2D
 
-# NEBULA - polished single-level sci-fi platformer prototype
-const WORLD_WIDTH: float = 4500.0
+# NEBULA - military side-scrolling action prototype
+const WORLD_WIDTH: float = 5600.0
 const FLOOR_Y: float = 610.0
 const PLAYER_HALF_W: float = 17.0
 const PLAYER_HEIGHT: float = 58.0
@@ -49,44 +49,20 @@ var enemy_soldiers: Array[Dictionary] = [
 
 # Each platform is a solid top surface. Gaps are intentional jumps.
 var platforms: Array[Rect2] = [
-    Rect2(0, FLOOR_Y, 820, 220),
-    Rect2(940, FLOOR_Y, 690, 220),
-    Rect2(1740, FLOOR_Y, 790, 220),
-    Rect2(2640, FLOOR_Y, 720, 220),
-    Rect2(3460, FLOOR_Y, 1040, 220),
-    Rect2(790, 520, 150, 24),
-    Rect2(1250, 470, 170, 24),
-    Rect2(1570, 530, 145, 24),
-    Rect2(2050, 500, 175, 24),
-    Rect2(2390, 445, 170, 24),
-    Rect2(2860, 510, 170, 24),
-    Rect2(3220, 455, 170, 24),
-    Rect2(3750, 510, 180, 24)
+    Rect2(0, FLOOR_Y, WORLD_WIDTH, 260),
+    Rect2(700, 535, 150, 75),
+    Rect2(1510, 520, 190, 90),
+    Rect2(2440, 520, 220, 90),
+    Rect2(3450, 535, 170, 75),
+    Rect2(4560, 520, 220, 90)
 ]
 
-var cells: Array[Vector2] = [
-    Vector2(430, 520), Vector2(700, 490), Vector2(850, 465),
-    Vector2(1130, 535), Vector2(1340, 415), Vector2(1510, 535),
-    Vector2(1920, 535), Vector2(2140, 445), Vector2(2470, 390),
-    Vector2(2780, 535), Vector2(3000, 465), Vector2(3300, 400),
-    Vector2(3600, 535), Vector2(3860, 455), Vector2(4140, 535)
-]
+var cells: Array[Vector2] = []
 var collected_cells: Array[bool] = []
 
-var hazards: Array[Rect2] = [
-    Rect2(560, FLOOR_Y - 24, 82, 24),
-    Rect2(1090, FLOOR_Y - 24, 78, 24),
-    Rect2(1850, FLOOR_Y - 24, 95, 24),
-    Rect2(2310, FLOOR_Y - 24, 90, 24),
-    Rect2(2790, FLOOR_Y - 24, 86, 24),
-    Rect2(3550, FLOOR_Y - 24, 105, 24)
-]
+var hazards: Array[Rect2] = []
 
-var drones: Array[Dictionary] = [
-    {"origin": 1020.0, "x": 1020.0, "y": 450.0, "range": 90.0, "speed": 65.0, "dir": 1.0},
-    {"origin": 2160.0, "x": 2160.0, "y": 410.0, "range": 105.0, "speed": 78.0, "dir": -1.0},
-    {"origin": 3040.0, "x": 3040.0, "y": 420.0, "range": 85.0, "speed": 70.0, "dir": 1.0}
-]
+var drones: Array[Dictionary] = []
 
 func _ready() -> void:
     if ResourceLoader.exists("res://assets/player_atlas.png"):
@@ -118,7 +94,6 @@ func _physics_process(delta: float) -> void:
     if invulnerable_timer > 0.0:
         invulnerable_timer = maxf(0.0, invulnerable_timer - delta)
 
-    _update_drones(delta)
     _update_enemy_soldiers(delta)
     _update_bullets(delta)
     shoot_cooldown = maxf(0.0, shoot_cooldown - delta)
@@ -164,9 +139,6 @@ func _physics_process(delta: float) -> void:
                 on_floor = true
                 break
 
-    _check_collectibles()
-    _check_hazards()
-    _check_drones()
     _check_enemy_contact()
     _check_checkpoint()
 
@@ -257,15 +229,15 @@ func _update_enemy_soldiers(delta: float) -> void:
         if int(enemy["hp"]) <= 0:
             continue
         var dx: float = player_x - float(enemy["x"])
-        if absf(dx) < 520.0:
-            if absf(dx) > 75.0:
+        if absf(dx) < 760.0:
+            if absf(dx) > 125.0:
                 enemy["dir"] = signf(dx)
                 enemy["x"] = float(enemy["x"]) + float(enemy["dir"]) * float(enemy["speed"]) * delta
             enemy["cooldown"] = float(enemy["cooldown"]) - delta
-            if float(enemy["cooldown"]) <= 0.0 and absf(dx) < 440.0:
+            if float(enemy["cooldown"]) <= 0.0 and absf(dx) < 620.0:
                 var shot_dir: float = signf(dx)
-                bullets.append({"x": float(enemy["x"]) + shot_dir * 23.0, "y": float(enemy["y"]) + 27.0, "vx": shot_dir * 430.0, "team": "enemy", "life": 1.5})
-                enemy["cooldown"] = 1.35 + float(i % 3) * 0.25
+                bullets.append({"x": float(enemy["x"]) + shot_dir * 25.0, "y": float(enemy["y"]) + 29.0, "vx": shot_dir * 500.0, "team": "enemy", "life": 1.65})
+                enemy["cooldown"] = 1.05 + float(i % 3) * 0.18
         else:
             enemy["x"] = float(enemy["x"]) + float(enemy["dir"]) * float(enemy["speed"]) * 0.35 * delta
             if absf(float(enemy["x"]) - float(enemy["origin"])) > 90.0:
@@ -324,9 +296,9 @@ func _draw_enemy_soldiers() -> void:
         var dir: float = float(enemy["dir"])
         if enemy_atlas != null:
             var dx: float = absf(player_x - float(enemy["x"]))
-            var row: int = 1 if dx > 75.0 and dx < 520.0 else 0
-            if float(enemy["cooldown"]) > 1.20:
-                row = 2
+            var row: int = 1 if dx > 125.0 and dx < 760.0 else 0
+            if dx < 620.0 and float(enemy["cooldown"]) < 0.35:
+                row = 3
             var frame: int = int(elapsed * (9.0 if row == 1 else 7.0)) % 4
             var source: Rect2 = Rect2(frame * 256, row * 384, 256, 384)
             var destination: Rect2 = Rect2(-43, -80, 86, 98)
@@ -383,12 +355,12 @@ func _check_drones() -> void:
             return
 
 func _check_checkpoint() -> void:
-    if player_x >= 1740.0 and not checkpoint_reached:
+    if player_x >= 2200.0 and not checkpoint_reached:
         checkpoint_reached = true
-        checkpoint_x = 1800.0
+        checkpoint_x = 2260.0
         _show_notice("CHECKPOINT ACTIVATED")
         _spawn_burst(Vector2(checkpoint_x, FLOOR_Y - 65.0), Color("#69f5d0"), 18)
-    if player_x >= 4400.0:
+    if player_x >= 5480.0:
         game_state = "victory"
         _show_notice("SECTOR CLEARED")
 
@@ -463,9 +435,7 @@ func _draw() -> void:
     var size: Vector2 = get_viewport_rect().size
     _draw_background(size)
     _draw_level(size)
-    _draw_collectibles()
-    _draw_hazards()
-    _draw_drones()
+    _draw_military_props()
     _draw_enemy_soldiers()
     _draw_bullets()
     _draw_checkpoint()
@@ -478,36 +448,85 @@ func _draw() -> void:
         _draw_overlay(size)
 
 func _draw_background(size: Vector2) -> void:
-    draw_rect(Rect2(Vector2.ZERO, size), Color("#050d1c"))
-    draw_circle(Vector2(size.x * 0.76, 155), 245, Color(0.08, 0.34, 0.55, 0.13))
-    draw_circle(Vector2(size.x * 0.76, 155), 170, Color(0.12, 0.52, 0.68, 0.08))
-    for i in range(115):
-        var sx: float = fposmod(float(i * 173) - camera_x * 0.12, size.x)
-        var sy: float = float((i * 79) % 390) + 18.0
-        var twinkle: float = 0.45 + 0.35 * sin(elapsed * 2.0 + float(i))
-        draw_circle(Vector2(sx, sy), 1.0 + float(i % 3) * 0.45, Color(0.55, 0.84, 1.0, twinkle))
-    for i in range(22):
-        var bx: float = fposmod(float(i * 205) - camera_x * 0.24, size.x + 240.0) - 120.0
-        var bh: float = 105.0 + float((i * 47) % 190)
-        draw_rect(Rect2(bx, FLOOR_Y - bh, 112, bh), Color("#0b1a30"))
-        draw_rect(Rect2(bx + 8, FLOOR_Y - bh + 12, 96, 3), Color(0.08, 0.46, 0.62, 0.25))
-        for wy in range(3, int(bh / 25.0)):
-            for wx in range(2):
-                if (i + wx + wy) % 3 != 0:
-                    draw_rect(Rect2(bx + 16 + wx * 43, FLOOR_Y - bh + wy * 25 + 12, 7, 10), Color(0.08, 0.58, 0.75, 0.38))
+    draw_rect(Rect2(Vector2.ZERO, size), Color("#343b48"))
+    draw_rect(Rect2(0, 0, size.x, FLOOR_Y * 0.55), Color("#59606a"))
+    draw_circle(Vector2(size.x * 0.78, 150), 92, Color("#c28b62"))
+    draw_circle(Vector2(size.x * 0.78, 150), 116, Color(0.85, 0.52, 0.31, 0.10))
+    for i in range(16):
+        var bx: float = fposmod(float(i * 193) - camera_x * 0.20, size.x + 260.0) - 130.0
+        var bh: float = 115.0 + float((i * 53) % 170)
+        draw_rect(Rect2(bx, FLOOR_Y - bh, 130, bh), Color("#303943"))
+        draw_rect(Rect2(bx + 10, FLOOR_Y - bh + 14, 110, 5), Color("#555d62"))
+        draw_rect(Rect2(bx + 18, FLOOR_Y - bh + 34, 18, 25), Color("#252e35"))
+        draw_rect(Rect2(bx + 62, FLOOR_Y - bh + 34, 18, 25), Color("#252e35"))
+    for i in range(2):
+        var ax: float = fposmod(float(i * 610 + 380) - camera_x * 0.08, size.x + 180.0) - 90.0
+        var ay: float = 145.0 + float(i * 42)
+        draw_set_transform(Vector2(ax, ay), 0.0, Vector2(48, 10))
+        draw_circle(Vector2.ZERO, 1.0, Color("#303943"))
+        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        draw_rect(Rect2(ax - 13, ay + 8, 26, 12), Color("#303943"))
+        draw_line(Vector2(ax, ay - 12), Vector2(ax, ay - 30), Color("#303943"), 2.0)
 
 func _draw_level(size: Vector2) -> void:
+    draw_rect(Rect2(0, FLOOR_Y - 2, size.x, 2), Color("#b5a27c"))
+    draw_rect(Rect2(0, FLOOR_Y, size.x, size.y - FLOOR_Y + 80), Color("#45483f"))
+    draw_rect(Rect2(0, FLOOR_Y + 9, size.x, 5), Color("#30352f"))
+    for x in range(-int(camera_x) % 96, int(size.x), 96):
+        draw_line(Vector2(x, FLOOR_Y + 24), Vector2(x + 34, FLOOR_Y + 24), Color("#77715c"), 3.0)
     for platform: Rect2 in platforms:
+        if platform.position.y >= FLOOR_Y:
+            continue
         var rect: Rect2 = Rect2(platform.position.x - camera_x, platform.position.y, platform.size.x, platform.size.y)
         if rect.position.x > size.x or rect.end.x < 0.0:
             continue
-        draw_rect(rect, Color("#14283e"))
-        draw_rect(Rect2(rect.position.x, rect.position.y, rect.size.x, 7), Color("#27c4d8"))
-        draw_rect(Rect2(rect.position.x, rect.position.y + 7, rect.size.x, 2), Color(0.38, 0.91, 1.0, 0.35))
-        for x in range(int(rect.position.x) + 12, int(rect.end.x) - 12, 48):
-            draw_rect(Rect2(x, rect.position.y + 24, 25, 5), Color("#29445d"))
-            draw_rect(Rect2(x + 4, rect.position.y + 39, 12, 3), Color(0.14, 0.39, 0.52, 0.55))
-    draw_rect(Rect2(0, FLOOR_Y - 3, size.x, 3), Color(0.10, 0.72, 0.84, 0.28))
+        draw_rect(rect, Color("#55594e"))
+        draw_rect(Rect2(rect.position.x, rect.position.y, rect.size.x, 6), Color("#a6a18a"))
+        draw_rect(Rect2(rect.position.x, rect.position.y + 7, rect.size.x, 3), Color("#292f2c"))
+        for bolt_x in range(int(rect.position.x) + 12, int(rect.end.x) - 8, 34):
+            draw_circle(Vector2(bolt_x, rect.position.y + 18), 2.5, Color("#c0b99b"))
+
+func _draw_military_props() -> void:
+    var props: Array[Dictionary] = [
+        {"x": 700.0, "kind": "crates"},
+        {"x": 1510.0, "kind": "truck"},
+        {"x": 2440.0, "kind": "tank"},
+        {"x": 3450.0, "kind": "container"},
+        {"x": 4560.0, "kind": "tank"}
+    ]
+    for prop: Dictionary in props:
+        var x: float = float(prop["x"]) - camera_x
+        var kind: String = String(prop["kind"])
+        if x < -300.0 or x > get_viewport_rect().size.x + 300.0:
+            continue
+        if kind == "crates":
+            for n in range(3):
+                var cx: float = x + float(n % 2) * 70.0
+                var cy: float = FLOOR_Y - 75.0 - float(n / 2) * 75.0
+                draw_rect(Rect2(cx, cy, 66, 70), Color("#655b45"))
+                draw_rect(Rect2(cx + 5, cy + 5, 56, 60), Color("#897653"), false, 4.0)
+                draw_line(Vector2(cx + 8, cy + 8), Vector2(cx + 58, cy + 62), Color("#4b493b"), 4.0)
+                draw_line(Vector2(cx + 58, cy + 8), Vector2(cx + 8, cy + 62), Color("#4b493b"), 4.0)
+        elif kind == "truck":
+            draw_rect(Rect2(x, FLOOR_Y - 66, 188, 54), Color("#59634c"))
+            draw_rect(Rect2(x + 8, FLOOR_Y - 104, 72, 42), Color("#68735b"))
+            draw_rect(Rect2(x + 18, FLOOR_Y - 96, 48, 25), Color("#9aa0a0"))
+            for wx in [x + 38, x + 148]:
+                draw_circle(Vector2(wx, FLOOR_Y - 9), 18, Color("#24292a"))
+                draw_circle(Vector2(wx, FLOOR_Y - 9), 8, Color("#9b9b8c"))
+        elif kind == "tank":
+            draw_rect(Rect2(x, FLOOR_Y - 70, 220, 58), Color("#515d46"))
+            draw_rect(Rect2(x + 24, FLOOR_Y - 88, 168, 25), Color("#303a32"))
+            draw_rect(Rect2(x + 73, FLOOR_Y - 112, 82, 28), Color("#687453"))
+            draw_rect(Rect2(x + 130, FLOOR_Y - 106, 100, 9), Color("#343b34"))
+            for tx in range(6):
+                draw_circle(Vector2(x + 28 + tx * 31, FLOOR_Y - 13), 13, Color("#242a27"))
+                draw_circle(Vector2(x + 28 + tx * 31, FLOOR_Y - 13), 5, Color("#8d927f"))
+        elif kind == "container":
+            draw_rect(Rect2(x, FLOOR_Y - 78, 170, 66), Color("#59675b"))
+            draw_rect(Rect2(x + 6, FLOOR_Y - 72, 158, 54), Color("#78806b"), false, 3.0)
+            for rib in range(1, 8):
+                draw_line(Vector2(x + rib * 20, FLOOR_Y - 70), Vector2(x + rib * 20, FLOOR_Y - 20), Color("#414d45"), 3.0)
 
 func _draw_collectibles() -> void:
     for i in range(cells.size()):
@@ -607,14 +626,14 @@ func _draw_hud(size: Vector2) -> void:
     draw_rect(Rect2(18, 16, 320, 82), Color(0.015, 0.045, 0.09, 0.86))
     draw_rect(Rect2(18, 16, 4, 82), Color("#35e5f2"))
     draw_string(ThemeDB.fallback_font, Vector2(36, 43), "NEBULA  /  SECTOR 01", HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("#c5fbff"))
-    draw_string(ThemeDB.fallback_font, Vector2(36, 68), "ENERGY CELLS  %02d / %02d" % [collected, cells.size()], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#75c7d8"))
+    draw_string(ThemeDB.fallback_font, Vector2(36, 68), "HOSTILE ZONE  //  ADVANCE", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#d0b58b"))
     for i in range(MAX_HEALTH):
         var heart_color: Color = Color("#ff637d") if i < health else Color("#33465a")
         _draw_heart(Vector2(37 + i * 28, 86), 8.0, heart_color)
-    var progress: float = clampf(player_x / 4400.0, 0.0, 1.0)
+    var progress: float = clampf(player_x / 5480.0, 0.0, 1.0)
     draw_rect(Rect2(size.x * 0.36, 28, size.x * 0.28, 8), Color(0.16, 0.25, 0.34, 0.9))
     draw_rect(Rect2(size.x * 0.36, 28, size.x * 0.28 * progress, 8), Color("#35d9e8"))
-    draw_string(ThemeDB.fallback_font, Vector2(size.x * 0.36, 54), "SECTOR PROGRESS  %d%%" % int(progress * 100.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#8cb9cc"))
+    draw_string(ThemeDB.fallback_font, Vector2(size.x * 0.36, 54), "MISSION PROGRESS  %d%%" % int(progress * 100.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#d0b58b"))
     draw_rect(Rect2(size.x - 88, 18, 70, 54), Color(0.015, 0.045, 0.09, 0.86))
     draw_rect(Rect2(size.x - 88, 18, 70, 54), Color(0.2, 0.7, 0.8, 0.5), false, 2.0)
     draw_string(ThemeDB.fallback_font, Vector2(size.x - 70, 51), "II", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("#c5fbff"))
