@@ -1,8 +1,8 @@
 extends Node2D
 
 # NEBULA - military side-scrolling action prototype
-const WORLD_WIDTH: float = 5600.0
-const FLOOR_Y: float = 610.0
+const WORLD_WIDTH: float = 6097.0
+const FLOOR_Y: float = 520.0
 const PLAYER_HALF_W: float = 17.0
 const PLAYER_HEIGHT: float = 58.0
 const GRAVITY: float = 1850.0
@@ -37,6 +37,9 @@ var shoot_cooldown: float = 0.0
 var muzzle_flash: float = 0.0
 var player_atlas: Texture2D
 var enemy_atlas: Texture2D
+var map_textures: Array[Texture2D] = []
+var map_positions: Array[float] = [0.0, 535.0, 1473.0, 2341.0, 3117.0, 3907.0, 4732.0]
+var map_loaded: bool = false
 var animation_clock: float = 0.0
 var animation_frame: int = 0
 var enemy_soldiers: Array[Dictionary] = [
@@ -50,11 +53,11 @@ var enemy_soldiers: Array[Dictionary] = [
 # Each platform is a solid top surface. Gaps are intentional jumps.
 var platforms: Array[Rect2] = [
     Rect2(0, FLOOR_Y, WORLD_WIDTH, 260),
-    Rect2(700, 535, 150, 75),
-    Rect2(1510, 520, 190, 90),
-    Rect2(2440, 520, 220, 90),
-    Rect2(3450, 535, 170, 75),
-    Rect2(4560, 520, 220, 90)
+    # Walkable tops of the visible truck/tank props in the supplied map.
+    Rect2(42, 388, 225, 16),
+    Rect2(1600, 438, 170, 16),
+    Rect2(3890, 454, 130, 16),
+    Rect2(4220, 465, 120, 16)
 ]
 
 var cells: Array[Vector2] = []
@@ -69,11 +72,40 @@ func _ready() -> void:
         player_atlas = load("res://assets/player_atlas.png") as Texture2D
     if ResourceLoader.exists("res://assets/enemy_atlas.png"):
         enemy_atlas = load("res://assets/enemy_atlas.png") as Texture2D
+    _load_map_segments()
     collected_cells.resize(cells.size())
     for i in range(collected_cells.size()):
         collected_cells[i] = false
     set_process(true)
     set_physics_process(true)
+
+func _load_map_segments() -> void:
+    map_textures.clear()
+    map_loaded = false
+    for i in range(1, 8):
+        var png_path: String = "res://assets/map/map_%d.png" % i
+        var jpg_path: String = "res://assets/map/map_%d.jpg" % i
+        var texture: Texture2D = null
+        if ResourceLoader.exists(png_path):
+            texture = load(png_path) as Texture2D
+        elif ResourceLoader.exists(jpg_path):
+            texture = load(jpg_path) as Texture2D
+        if texture == null:
+            map_textures.clear()
+            push_warning("Map segment missing: map_%d.png or map_%d.jpg" % [i, i])
+            return
+        map_textures.append(texture)
+    map_loaded = map_textures.size() == 7
+    if map_loaded:
+        print("NEBULA map loaded: 7 segments")
+
+func _draw_map_background(size: Vector2) -> void:
+    for i in range(map_textures.size()):
+        var texture: Texture2D = map_textures[i]
+        var x: float = map_positions[i] - camera_x
+        if x + float(texture.get_width()) < 0.0 or x > size.x:
+            continue
+        draw_texture(texture, Vector2(x, 0.0))
 
 func _process(delta: float) -> void:
     elapsed += delta
@@ -236,7 +268,7 @@ func _update_enemy_soldiers(delta: float) -> void:
             enemy["cooldown"] = float(enemy["cooldown"]) - delta
             if float(enemy["cooldown"]) <= 0.0 and absf(dx) < 620.0:
                 var shot_dir: float = signf(dx)
-                bullets.append({"x": float(enemy["x"]) + shot_dir * 25.0, "y": player_y + 29.0, "vx": shot_dir * 500.0, "team": "enemy", "life": 1.65})
+                bullets.append({"x": float(enemy["x"]) + shot_dir * 25.0, "y": float(enemy["y"]) + 29.0, "vx": shot_dir * 500.0, "team": "enemy", "life": 1.65})
                 enemy["cooldown"] = 1.05 + float(i % 3) * 0.18
         else:
             enemy["x"] = float(enemy["x"]) + float(enemy["dir"]) * float(enemy["speed"]) * 0.35 * delta
@@ -360,7 +392,7 @@ func _check_checkpoint() -> void:
         checkpoint_x = 2260.0
         _show_notice("CHECKPOINT ACTIVATED")
         _spawn_burst(Vector2(checkpoint_x, FLOOR_Y - 65.0), Color("#69f5d0"), 18)
-    if player_x >= 5480.0:
+    if player_x >= WORLD_WIDTH - 80.0:
         game_state = "victory"
         _show_notice("SECTOR CLEARED")
 
@@ -433,9 +465,12 @@ func _update_particles(delta: float) -> void:
 
 func _draw() -> void:
     var size: Vector2 = get_viewport_rect().size
-    _draw_background(size)
-    _draw_level(size)
-    _draw_military_props()
+    if map_loaded:
+        _draw_map_background(size)
+    else:
+        _draw_background(size)
+        _draw_level(size)
+        _draw_military_props()
     _draw_enemy_soldiers()
     _draw_bullets()
     _draw_checkpoint()
