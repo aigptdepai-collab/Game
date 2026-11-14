@@ -32,6 +32,15 @@ var notice_text: String = ""
 var touch_actions: Dictionary = {}
 var keyboard_jump_was_down: bool = false
 var particles: Array[Dictionary] = []
+var bullets: Array[Dictionary] = []
+var shoot_cooldown: float = 0.0
+var enemy_soldiers: Array[Dictionary] = [
+    {"x": 720.0, "origin": 720.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.0, "speed": 46.0},
+    {"x": 1450.0, "origin": 1450.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.5, "speed": 52.0},
+    {"x": 2250.0, "origin": 2250.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.4, "speed": 48.0},
+    {"x": 3150.0, "origin": 3150.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.8, "speed": 55.0},
+    {"x": 3900.0, "origin": 3900.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.2, "speed": 50.0}
+]
 
 # Each platform is a solid top surface. Gaps are intentional jumps.
 var platforms: Array[Rect2] = [
@@ -98,6 +107,11 @@ func _physics_process(delta: float) -> void:
         invulnerable_timer = maxf(0.0, invulnerable_timer - delta)
 
     _update_drones(delta)
+    _update_enemy_soldiers(delta)
+    _update_bullets(delta)
+    shoot_cooldown = maxf(0.0, shoot_cooldown - delta)
+    if _shoot_is_down() and shoot_cooldown <= 0.0:
+        _fire_player_bullet()
     var direction: float = _get_move_direction()
     if absf(direction) > 0.01:
         facing = signf(direction)
@@ -140,6 +154,7 @@ func _physics_process(delta: float) -> void:
     _check_collectibles()
     _check_hazards()
     _check_drones()
+    _check_enemy_contact()
     _check_checkpoint()
 
     if player_y > 900.0:
@@ -190,8 +205,11 @@ func _input(event: InputEvent) -> void:
                 if pos.x < size.x * 0.30:
                     touch_actions[event.index] = "left" if pos.x < size.x * 0.09 else "right"
                 elif pos.x > size.x * 0.68:
-                    touch_actions[event.index] = "jump"
-                    jump_buffer = 0.14
+                    if pos.x > size.x * 0.88:
+                        touch_actions[event.index] = "shoot"
+                    else:
+                        touch_actions[event.index] = "jump"
+                        jump_buffer = 0.14
         else:
             touch_actions.erase(event.index)
     elif event is InputEventKey and event.pressed and not event.echo:
@@ -205,6 +223,103 @@ func _input(event: InputEvent) -> void:
 
 func _point_in_rect(point: Vector2, rect: Rect2) -> bool:
     return rect.has_point(point)
+
+func _shoot_is_down() -> bool:
+    if Input.is_key_pressed(KEY_J) or Input.is_key_pressed(KEY_X) or Input.is_key_pressed(KEY_CTRL):
+        return true
+    for action in touch_actions.values():
+        if action == "shoot":
+            return true
+    return false
+
+func _fire_player_bullet() -> void:
+    bullets.append({"x": player_x + facing * 27.0, "y": player_y + 29.0, "vx": facing * 780.0, "team": "player", "life": 1.6})
+    shoot_cooldown = 0.19
+    _spawn_burst(Vector2(player_x + facing * 27.0, player_y + 29.0), Color("#ffd27a"), 3)
+
+func _update_enemy_soldiers(delta: float) -> void:
+    for i in range(enemy_soldiers.size()):
+        var enemy: Dictionary = enemy_soldiers[i]
+        if int(enemy["hp"]) <= 0:
+            continue
+        var dx: float = player_x - float(enemy["x"])
+        if absf(dx) < 520.0:
+            if absf(dx) > 75.0:
+                enemy["dir"] = signf(dx)
+                enemy["x"] = float(enemy["x"]) + float(enemy["dir"]) * float(enemy["speed"]) * delta
+            enemy["cooldown"] = float(enemy["cooldown"]) - delta
+            if float(enemy["cooldown"]) <= 0.0 and absf(dx) < 440.0:
+                var shot_dir: float = signf(dx)
+                bullets.append({"x": float(enemy["x"]) + shot_dir * 23.0, "y": float(enemy["y"]) + 27.0, "vx": shot_dir * 430.0, "team": "enemy", "life": 1.5})
+                enemy["cooldown"] = 1.35 + float(i % 3) * 0.25
+        else:
+            enemy["x"] = float(enemy["x"]) + float(enemy["dir"]) * float(enemy["speed"]) * 0.35 * delta
+            if absf(float(enemy["x"]) - float(enemy["origin"])) > 90.0:
+                enemy["dir"] = -float(enemy["dir"])
+        enemy_soldiers[i] = enemy
+
+func _update_bullets(delta: float) -> void:
+    for i in range(bullets.size() - 1, -1, -1):
+        var bullet: Dictionary = bullets[i]
+        bullet["x"] = float(bullet["x"]) + float(bullet["vx"]) * delta
+        bullet["life"] = float(bullet["life"]) - delta
+        var remove_bullet: bool = float(bullet["life"]) <= 0.0
+        if not remove_bullet and bullet["team"] == "player":
+            for j in range(enemy_soldiers.size()):
+                var enemy: Dictionary = enemy_soldiers[j]
+                if int(enemy["hp"]) > 0 and absf(float(enemy["x"]) - float(bullet["x"])) < 24.0 and absf(float(enemy["y"]) + 28.0 - float(bullet["y"])) < 34.0:
+                    enemy["hp"] = int(enemy["hp"]) - 1
+                    enemy_soldiers[j] = enemy
+                    _spawn_burst(Vector2(float(bullet["x"]), float(bullet["y"])), Color("#ffb36b"), 6)
+                    remove_bullet = true
+                    if int(enemy["hp"]) <= 0:
+                        _spawn_burst(Vector2(float(enemy["x"]), float(enemy["y"]) + 28.0), Color("#ff805e"), 16)
+                        _show_notice("HOSTILE DOWN")
+                    break
+        elif not remove_bullet and bullet["team"] == "enemy" and invulnerable_timer <= 0.0:
+            if absf(float(bullet["x"]) - player_x) < 19.0 and absf(float(bullet["y"]) - (player_y + 29.0)) < 28.0:
+                _take_damage()
+                remove_bullet = true
+        if remove_bullet:
+            bullets.remove_at(i)
+        else:
+            bullets[i] = bullet
+
+func _check_enemy_contact() -> void:
+    if invulnerable_timer > 0.0:
+        return
+    for enemy: Dictionary in enemy_soldiers:
+        if int(enemy["hp"]) > 0 and absf(float(enemy["x"]) - player_x) < 27.0 and absf(float(enemy["y"]) - player_y) < 52.0:
+            _take_damage()
+            return
+
+func _draw_bullets() -> void:
+    for bullet: Dictionary in bullets:
+        var p: Vector2 = Vector2(float(bullet["x"]) - camera_x, float(bullet["y"]))
+        var tint: Color = Color("#ffd27a") if bullet["team"] == "player" else Color("#ff657c")
+        draw_line(p, p - Vector2(signf(float(bullet["vx"])) * 13.0, 0), tint, 4.0)
+        draw_circle(p, 3.0, Color("#fff4ce"))
+
+func _draw_enemy_soldiers() -> void:
+    for enemy: Dictionary in enemy_soldiers:
+        if int(enemy["hp"]) <= 0:
+            continue
+        var p: Vector2 = Vector2(float(enemy["x"]) - camera_x, float(enemy["y"]))
+        if p.x < -60.0 or p.x > get_viewport_rect().size.x + 60.0:
+            continue
+        var dir: float = float(enemy["dir"])
+        draw_rect(Rect2(p.x - 12, p.y + 36, 10, 19), Color("#343d36"))
+        draw_rect(Rect2(p.x + 3, p.y + 36, 10, 19), Color("#343d36"))
+        draw_rect(Rect2(p.x - 16, p.y + 14, 32, 27), Color("#596448"))
+        draw_rect(Rect2(p.x - 15, p.y + 8, 30, 10), Color("#343d36"))
+        draw_rect(Rect2(p.x - 13, p.y - 3, 26, 22), Color("#bd956c"))
+        draw_rect(Rect2(p.x - 16, p.y - 7, 32, 9), Color("#4c583e"))
+        draw_rect(Rect2(p.x - 9, p.y + 5, 18, 5), Color("#252a2a"))
+        draw_line(p + Vector2(10.0 * dir, 24), p + Vector2(25.0 * dir, 27), Color("#bd956c"), 6.0)
+        draw_rect(Rect2(p.x + (18.0 if dir > 0.0 else -38.0), p.y + 20, 23, 7), Color("#242d35"))
+        draw_rect(Rect2(p.x + (37.0 if dir > 0.0 else -40.0), p.y + 22, 5, 3), Color("#a9bac0"))
+        for h in range(int(enemy["hp"])):
+            draw_rect(Rect2(p.x - 15 + h * 11, p.y - 16, 8, 3), Color("#ff765f"))
 
 func _update_drones(delta: float) -> void:
     for i in range(drones.size()):
@@ -317,6 +432,8 @@ func _draw() -> void:
     _draw_collectibles()
     _draw_hazards()
     _draw_drones()
+    _draw_enemy_soldiers()
+    _draw_bullets()
     _draw_checkpoint()
     _draw_exit()
     _draw_player()
@@ -472,7 +589,8 @@ func _draw_touch_controls(size: Vector2) -> void:
     var y: float = size.y - 78.0
     _draw_control_circle(Vector2(62, y), "◀", Color(0.24, 0.76, 0.88, 0.22))
     _draw_control_circle(Vector2(146, y), "▶", Color(0.24, 0.76, 0.88, 0.22))
-    _draw_control_circle(Vector2(size.x - 86, y), "JUMP", Color(0.22, 0.85, 0.79, 0.24))
+    _draw_control_circle(Vector2(size.x - 150, y), "FIRE", Color(1.0, 0.48, 0.20, 0.28))
+    _draw_control_circle(Vector2(size.x - 65, y), "JUMP", Color(0.22, 0.85, 0.79, 0.24))
 
 func _draw_control_circle(center: Vector2, label: String, color: Color) -> void:
     draw_circle(center, 38, color)
