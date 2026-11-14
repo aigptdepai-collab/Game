@@ -413,7 +413,7 @@ func _draw_player() -> void:
     if invulnerable_timer > 0.0 and int(elapsed * 14.0) % 2 == 0:
         return
     var run: float = sin(elapsed * 14.0) * 5.0 if on_floor and absf(_get_move_direction()) > 0.1 else 0.0
-    draw_ellipse(p + Vector2(0, PLAYER_HEIGHT + 4), Vector2(24, 6), Color(0, 0, 0, 0.35))
+    _draw_player_shadow_ellipse(p + Vector2(0, PLAYER_HEIGHT + 4), Vector2(24, 6), Color(0, 0, 0, 0.35))
     draw_line(p + Vector2(-7, 39), p + Vector2(-10 + run, 55), Color("#8bd5e8"), 8.0)
     draw_line(p + Vector2(7, 39), p + Vector2(10 - run, 55), Color("#8bd5e8"), 8.0)
     draw_rect(Rect2(p.x - 19 + run, p.y + 52, 17, 7), Color("#15283d"))
@@ -429,7 +429,7 @@ func _draw_player() -> void:
     draw_line(p + Vector2(12.0 * facing, 22), p + Vector2(arm_x, 35), Color("#8bd5e8"), 6.0)
     draw_rect(Rect2(p.x - 23 if facing < 0 else p.x + 15, p.y + 17, 8, 20), Color("#d58b42"))
 
-func draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
+func _draw_player_shadow_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
     draw_set_transform(center, 0.0, radii)
     draw_circle(Vector2.ZERO, 1.0, color)
     draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
