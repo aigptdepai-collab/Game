@@ -236,7 +236,7 @@ func _update_enemy_soldiers(delta: float) -> void:
             enemy["cooldown"] = float(enemy["cooldown"]) - delta
             if float(enemy["cooldown"]) <= 0.0 and absf(dx) < 620.0:
                 var shot_dir: float = signf(dx)
-                bullets.append({"x": float(enemy["x"]) + shot_dir * 25.0, "y": float(enemy["y"]) + 29.0, "vx": shot_dir * 500.0, "team": "enemy", "life": 1.65})
+                bullets.append({"x": float(enemy["x"]) + shot_dir * 25.0, "y": player_y + 29.0, "vx": shot_dir * 500.0, "team": "enemy", "life": 1.65})
                 enemy["cooldown"] = 1.05 + float(i % 3) * 0.18
         else:
             enemy["x"] = float(enemy["x"]) + float(enemy["dir"]) * float(enemy["speed"]) * 0.35 * delta
@@ -571,7 +571,7 @@ func _draw_checkpoint() -> void:
     draw_circle(Vector2(x, FLOOR_Y - 95), 11, Color(0.38, 1.0, 0.78, 0.2))
 
 func _draw_exit() -> void:
-    var x: float = 4410.0 - camera_x
+    var x: float = 5490.0 - camera_x
     var center: Vector2 = Vector2(x, FLOOR_Y - 66)
     draw_circle(center, 55 + sin(elapsed * 3.0) * 4.0, Color(0.18, 0.9, 0.85, 0.10))
     draw_arc(center, 43, 0, TAU, 64, Color("#54f4d8"), 5.0)
