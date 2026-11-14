@@ -36,6 +36,7 @@ var bullets: Array[Dictionary] = []
 var shoot_cooldown: float = 0.0
 var muzzle_flash: float = 0.0
 var player_atlas: Texture2D
+var enemy_atlas: Texture2D
 var animation_clock: float = 0.0
 var animation_frame: int = 0
 var enemy_soldiers: Array[Dictionary] = [
@@ -90,6 +91,8 @@ var drones: Array[Dictionary] = [
 func _ready() -> void:
     if ResourceLoader.exists("res://assets/player_atlas.png"):
         player_atlas = load("res://assets/player_atlas.png") as Texture2D
+    if ResourceLoader.exists("res://assets/enemy_atlas.png"):
+        enemy_atlas = load("res://assets/enemy_atlas.png") as Texture2D
     collected_cells.resize(cells.size())
     for i in range(collected_cells.size()):
         collected_cells[i] = false
@@ -319,16 +322,28 @@ func _draw_enemy_soldiers() -> void:
         if p.x < -60.0 or p.x > get_viewport_rect().size.x + 60.0:
             continue
         var dir: float = float(enemy["dir"])
-        draw_rect(Rect2(p.x - 12, p.y + 36, 10, 19), Color("#343d36"))
-        draw_rect(Rect2(p.x + 3, p.y + 36, 10, 19), Color("#343d36"))
-        draw_rect(Rect2(p.x - 16, p.y + 14, 32, 27), Color("#596448"))
-        draw_rect(Rect2(p.x - 15, p.y + 8, 30, 10), Color("#343d36"))
-        draw_rect(Rect2(p.x - 13, p.y - 3, 26, 22), Color("#bd956c"))
-        draw_rect(Rect2(p.x - 16, p.y - 7, 32, 9), Color("#4c583e"))
-        draw_rect(Rect2(p.x - 9, p.y + 5, 18, 5), Color("#252a2a"))
-        draw_line(p + Vector2(10.0 * dir, 24), p + Vector2(25.0 * dir, 27), Color("#bd956c"), 6.0)
-        draw_rect(Rect2(p.x + (18.0 if dir > 0.0 else -38.0), p.y + 20, 23, 7), Color("#242d35"))
-        draw_rect(Rect2(p.x + (37.0 if dir > 0.0 else -40.0), p.y + 22, 5, 3), Color("#a9bac0"))
+        if enemy_atlas != null:
+            var dx: float = absf(player_x - float(enemy["x"]))
+            var row: int = 1 if dx > 75.0 and dx < 520.0 else 0
+            if float(enemy["cooldown"]) > 1.20:
+                row = 2
+            var frame: int = int(elapsed * (9.0 if row == 1 else 7.0)) % 4
+            var source: Rect2 = Rect2(frame * 256, row * 384, 256, 384)
+            var destination: Rect2 = Rect2(-43, -80, 86, 98)
+            draw_set_transform(Vector2(p.x, p.y + 58.0), 0.0, Vector2(dir, 1.0))
+            draw_texture_rect_region(enemy_atlas, destination, source, Color.WHITE, false, true)
+            draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        else:
+            draw_rect(Rect2(p.x - 12, p.y + 36, 10, 19), Color("#343d36"))
+            draw_rect(Rect2(p.x + 3, p.y + 36, 10, 19), Color("#343d36"))
+            draw_rect(Rect2(p.x - 16, p.y + 14, 32, 27), Color("#596448"))
+            draw_rect(Rect2(p.x - 15, p.y + 8, 30, 10), Color("#343d36"))
+            draw_rect(Rect2(p.x - 13, p.y - 3, 26, 22), Color("#bd956c"))
+            draw_rect(Rect2(p.x - 16, p.y - 7, 32, 9), Color("#4c583e"))
+            draw_rect(Rect2(p.x - 9, p.y + 5, 18, 5), Color("#252a2a"))
+            draw_line(p + Vector2(10.0 * dir, 24), p + Vector2(25.0 * dir, 27), Color("#bd956c"), 6.0)
+            draw_rect(Rect2(p.x + (18.0 if dir > 0.0 else -38.0), p.y + 20, 23, 7), Color("#242d35"))
+            draw_rect(Rect2(p.x + (37.0 if dir > 0.0 else -40.0), p.y + 22, 5, 3), Color("#a9bac0"))
         for h in range(int(enemy["hp"])):
             draw_rect(Rect2(p.x - 15 + h * 11, p.y - 16, 8, 3), Color("#ff765f"))
 
