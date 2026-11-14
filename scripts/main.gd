@@ -34,6 +34,7 @@ var keyboard_jump_was_down: bool = false
 var particles: Array[Dictionary] = []
 var bullets: Array[Dictionary] = []
 var shoot_cooldown: float = 0.0
+var muzzle_flash: float = 0.0
 var enemy_soldiers: Array[Dictionary] = [
     {"x": 720.0, "origin": 720.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.0, "speed": 46.0},
     {"x": 1450.0, "origin": 1450.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.5, "speed": 52.0},
@@ -110,6 +111,7 @@ func _physics_process(delta: float) -> void:
     _update_enemy_soldiers(delta)
     _update_bullets(delta)
     shoot_cooldown = maxf(0.0, shoot_cooldown - delta)
+    muzzle_flash = maxf(0.0, muzzle_flash - delta)
     if _shoot_is_down() and shoot_cooldown <= 0.0:
         _fire_player_bullet()
     var direction: float = _get_move_direction()
@@ -235,6 +237,7 @@ func _shoot_is_down() -> bool:
 func _fire_player_bullet() -> void:
     bullets.append({"x": player_x + facing * 27.0, "y": player_y + 29.0, "vx": facing * 780.0, "team": "player", "life": 1.6})
     shoot_cooldown = 0.19
+    muzzle_flash = 0.07
     _spawn_burst(Vector2(player_x + facing * 27.0, player_y + 29.0), Color("#ffd27a"), 3)
 
 func _update_enemy_soldiers(delta: float) -> void:
