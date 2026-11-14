@@ -48,3 +48,20 @@ If the PNG is missing, the old temporary fallback drawing is used.
 IMPORTANT:
 The updated script has not yet been run in Godot on a device. Import the
 PNG, reopen the project, and check the animation and sprite alignment.
+
+
+ENEMY SOLDIER SPRITE ATLAS
+--------------------------
+The main script also supports a 4-column x 4-row enemy atlas at:
+res://assets/enemy_atlas.png
+
+Place the supplied enemy atlas PNG in the same assets folder and name it:
+enemy_atlas.png
+
+Enemy atlas rows (top to bottom):
+0 = idle
+1 = run
+2 = firing
+3 = hit / defeat (reserved for a later death-animation update)
+
+If the enemy PNG is missing, the temporary procedural enemy drawing remains.
