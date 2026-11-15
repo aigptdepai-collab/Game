@@ -670,13 +670,15 @@ func _draw_checkpoint() -> void:
     if not checkpoint_reached:
         return
     var x: float = checkpoint_x - camera_x
-    draw_line(Vector2(x, FLOOR_Y), Vector2(x, FLOOR_Y - 95), Color("#65f0c8"), 5.0)
-    draw_colored_polygon(PackedVector2Array([Vector2(x + 2, FLOOR_Y - 93), Vector2(x + 40, FLOOR_Y - 80), Vector2(x + 2, FLOOR_Y - 66)]), Color("#65f0c8"))
-    draw_circle(Vector2(x, FLOOR_Y - 95), 11, Color(0.38, 1.0, 0.78, 0.2))
+    var ground_y: float = _ground_y_at(checkpoint_x)
+    draw_line(Vector2(x, ground_y), Vector2(x, ground_y - 95), Color("#65f0c8"), 5.0)
+    draw_colored_polygon(PackedVector2Array([Vector2(x + 2, ground_y - 93), Vector2(x + 40, ground_y - 80), Vector2(x + 2, ground_y - 66)]), Color("#65f0c8"))
+    draw_circle(Vector2(x, ground_y - 95), 11, Color(0.38, 1.0, 0.78, 0.2))
 
 func _draw_exit() -> void:
-    var x: float = 5490.0 - camera_x
-    var center: Vector2 = Vector2(x, FLOOR_Y - 66)
+    var exit_x: float = WORLD_WIDTH - 80.0
+    var x: float = exit_x - camera_x
+    var center: Vector2 = Vector2(x, _ground_y_at(exit_x) - 66)
     draw_circle(center, 55 + sin(elapsed * 3.0) * 4.0, Color(0.18, 0.9, 0.85, 0.10))
     draw_arc(center, 43, 0, TAU, 64, Color("#54f4d8"), 5.0)
     draw_arc(center, 30, 0, TAU, 64, Color("#8af8eb"), 2.0)
@@ -734,7 +736,7 @@ func _draw_hud(size: Vector2) -> void:
     for i in range(MAX_HEALTH):
         var heart_color: Color = Color("#ff637d") if i < health else Color("#33465a")
         _draw_heart(Vector2(37 + i * 28, 86), 8.0, heart_color)
-    var progress: float = clampf(player_x / 5480.0, 0.0, 1.0)
+    var progress: float = clampf(player_x / WORLD_WIDTH, 0.0, 1.0)
     draw_rect(Rect2(size.x * 0.36, 28, size.x * 0.28, 8), Color(0.16, 0.25, 0.34, 0.9))
     draw_rect(Rect2(size.x * 0.36, 28, size.x * 0.28 * progress, 8), Color("#35d9e8"))
     draw_string(ThemeDB.fallback_font, Vector2(size.x * 0.36, 54), "MISSION PROGRESS  %d%%" % int(progress * 100.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#d0b58b"))
