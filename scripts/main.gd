@@ -204,7 +204,7 @@ func _physics_process(delta: float) -> void:
                 break
         if not standing_on_platform:
             var terrain_y: float = _ground_y_at(player_x)
-            if player_y + PLAYER_HEIGHT <= terrain_y + 8.0:
+            if player_y + PLAYER_HEIGHT <= terrain_y + 8.0 and player_y + PLAYER_HEIGHT >= terrain_y - 35.0:
                 player_y = terrain_y - PLAYER_HEIGHT
             else:
                 on_floor = false
@@ -502,13 +502,7 @@ func _restart_level() -> void:
     for i in range(collected_cells.size()):
         collected_cells[i] = false
     bullets.clear()
-    enemy_soldiers = [
-        {"x": 720.0, "origin": 720.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.0, "speed": 46.0},
-        {"x": 1450.0, "origin": 1450.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.5, "speed": 52.0},
-        {"x": 2250.0, "origin": 2250.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.4, "speed": 48.0},
-        {"x": 3150.0, "origin": 3150.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.8, "speed": 55.0},
-        {"x": 3900.0, "origin": 3900.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.2, "speed": 50.0}
-    ]
+    _reset_enemy_wave()
     drones = [
         {"origin": 1020.0, "x": 1020.0, "y": 450.0, "range": 90.0, "speed": 65.0, "dir": 1.0},
         {"origin": 2160.0, "x": 2160.0, "y": 410.0, "range": 105.0, "speed": 78.0, "dir": -1.0},
