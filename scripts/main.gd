@@ -125,10 +125,30 @@ func _load_map_segments() -> void:
 func _draw_map_background(size: Vector2) -> void:
     for i in range(map_textures.size()):
         var texture: Texture2D = map_textures[i]
-        var x: float = map_positions[i] - camera_x
-        if x + float(texture.get_width()) < 0.0 or x > size.x:
+        var world_x: float = map_positions[i]
+        var x: float = world_x - camera_x
+        var width: float = float(texture.get_width())
+        if x + width < 0.0 or x > size.x:
             continue
-        draw_texture(texture, Vector2(x, 0.0))
+        var left_overlap: float = 0.0
+        var right_overlap: float = 0.0
+        if i > 0:
+            left_overlap = maxf(0.0, map_positions[i - 1] + float(map_textures[i - 1].get_width()) - world_x)
+        if i < map_textures.size() - 1:
+            right_overlap = maxf(0.0, world_x + width - map_positions[i + 1])
+        if i == 0:
+            draw_texture(texture, Vector2(x, 0.0))
+            continue
+        # Cross-fade only the shared strips; draw the unique middle at full opacity.
+        if left_overlap > 0.0:
+            draw_texture_rect_region(texture, Rect2(x, 0.0, left_overlap, texture.get_height()), Rect2(0.0, 0.0, left_overlap, texture.get_height()), Color(1, 1, 1, 0.5))
+        var middle_start: float = left_overlap
+        var middle_width: float = maxf(0.0, width - left_overlap - right_overlap)
+        if middle_width > 0.0:
+            draw_texture_rect_region(texture, Rect2(x + middle_start, 0.0, middle_width, texture.get_height()), Rect2(middle_start, 0.0, middle_width, texture.get_height()))
+        if right_overlap > 0.0:
+            var right_start: float = width - right_overlap
+            draw_texture_rect_region(texture, Rect2(x + right_start, 0.0, right_overlap, texture.get_height()), Rect2(right_start, 0.0, right_overlap, texture.get_height()), Color(1, 1, 1, 0.5))
 
 func _ground_y_at(world_x: float) -> float:
     if world_x <= ground_profile[0].x:
@@ -316,15 +336,15 @@ func _update_enemy_soldiers(delta: float) -> void:
         if int(enemy["hp"]) <= 0:
             continue
         var dx: float = player_x - float(enemy["x"])
-        if absf(dx) < 760.0:
+        if absf(dx) < 900.0:
             if absf(dx) > 125.0:
                 enemy["dir"] = signf(dx)
                 enemy["x"] = float(enemy["x"]) + float(enemy["dir"]) * float(enemy["speed"]) * delta
             enemy["cooldown"] = float(enemy["cooldown"]) - delta
-            if float(enemy["cooldown"]) <= 0.0 and absf(dx) < 620.0:
+            if float(enemy["cooldown"]) <= 0.0 and absf(dx) < 760.0:
                 var shot_dir: float = signf(dx)
                 bullets.append({"x": float(enemy["x"]) + shot_dir * 25.0, "y": float(enemy["y"]) + 29.0, "vx": shot_dir * 500.0, "team": "enemy", "life": 1.65})
-                enemy["cooldown"] = 1.05 + float(i % 3) * 0.18
+                enemy["cooldown"] = 0.78 + float(i % 3) * 0.14
         else:
             enemy["x"] = float(enemy["x"]) + float(enemy["dir"]) * float(enemy["speed"]) * 0.35 * delta
             if absf(float(enemy["x"]) - float(enemy["origin"])) > 90.0:
