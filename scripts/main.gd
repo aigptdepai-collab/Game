@@ -1,8 +1,8 @@
 extends Node2D
 
 # NEBULA - military side-scrolling action prototype
-const WORLD_WIDTH: float = 6097.0
-const FLOOR_Y: float = 520.0
+const WORLD_WIDTH: float = 7916.0
+const FLOOR_Y: float = 590.0
 const PLAYER_HALF_W: float = 17.0
 const PLAYER_HEIGHT: float = 58.0
 const GRAVITY: float = 1850.0
@@ -38,26 +38,43 @@ var muzzle_flash: float = 0.0
 var player_atlas: Texture2D
 var enemy_atlas: Texture2D
 var map_textures: Array[Texture2D] = []
-var map_positions: Array[float] = [0.0, 535.0, 1473.0, 2341.0, 3117.0, 3907.0, 4732.0]
+var map_positions: Array[float] = [0.0, 749.0, 1678.0, 2550.0, 3915.0, 5186.0, 6551.0]
 var map_loaded: bool = false
 var animation_clock: float = 0.0
 var animation_frame: int = 0
 var enemy_soldiers: Array[Dictionary] = [
-    {"x": 720.0, "origin": 720.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.0, "speed": 46.0},
-    {"x": 1450.0, "origin": 1450.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.5, "speed": 52.0},
-    {"x": 2250.0, "origin": 2250.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.4, "speed": 48.0},
-    {"x": 3150.0, "origin": 3150.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.8, "speed": 55.0},
-    {"x": 3900.0, "origin": 3900.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 1.2, "speed": 50.0}
+    {"x": 420.0, "origin": 420.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 4, "cooldown": 0.45, "speed": 58.0},
+    {"x": 690.0, "origin": 690.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.61, "speed": 67.0},
+    {"x": 930.0, "origin": 930.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 0.77, "speed": 76.0},
+    {"x": 1210.0, "origin": 1210.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.9299999999999999, "speed": 58.0},
+    {"x": 1510.0, "origin": 1510.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 4, "cooldown": 0.45, "speed": 67.0},
+    {"x": 1780.0, "origin": 1780.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.61, "speed": 76.0},
+    {"x": 2070.0, "origin": 2070.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 0.77, "speed": 58.0},
+    {"x": 2360.0, "origin": 2360.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.9299999999999999, "speed": 67.0},
+    {"x": 2670.0, "origin": 2670.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 4, "cooldown": 0.45, "speed": 76.0},
+    {"x": 2980.0, "origin": 2980.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.61, "speed": 58.0},
+    {"x": 3290.0, "origin": 3290.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 0.77, "speed": 67.0},
+    {"x": 3610.0, "origin": 3610.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.9299999999999999, "speed": 76.0},
+    {"x": 3940.0, "origin": 3940.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 4, "cooldown": 0.45, "speed": 58.0},
+    {"x": 4260.0, "origin": 4260.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.61, "speed": 67.0},
+    {"x": 4590.0, "origin": 4590.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 0.77, "speed": 76.0},
+    {"x": 4930.0, "origin": 4930.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.9299999999999999, "speed": 58.0},
+    {"x": 5280.0, "origin": 5280.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 4, "cooldown": 0.45, "speed": 67.0},
+    {"x": 5620.0, "origin": 5620.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.61, "speed": 76.0},
+    {"x": 5960.0, "origin": 5960.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 0.77, "speed": 58.0},
+    {"x": 6310.0, "origin": 6310.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.9299999999999999, "speed": 67.0},
+    {"x": 6650.0, "origin": 6650.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 4, "cooldown": 0.45, "speed": 76.0},
+    {"x": 6990.0, "origin": 6990.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.61, "speed": 58.0},
+    {"x": 7330.0, "origin": 7330.0, "y": FLOOR_Y - 58.0, "dir": -1.0, "hp": 3, "cooldown": 0.77, "speed": 67.0},
+    {"x": 7660.0, "origin": 7660.0, "y": FLOOR_Y - 58.0, "dir": 1.0, "hp": 3, "cooldown": 0.9299999999999999, "speed": 76.0}
 ]
-
 # Each platform is a solid top surface. Gaps are intentional jumps.
 var platforms: Array[Rect2] = [
-    Rect2(0, FLOOR_Y, WORLD_WIDTH, 260),
-    # Walkable tops of the visible truck/tank props in the supplied map.
-    Rect2(42, 388, 225, 16),
-    Rect2(1600, 438, 170, 16),
-    Rect2(3890, 454, 130, 16),
-    Rect2(4220, 465, 120, 16)
+    Rect2(360, 535, 105, 18), Rect2(485, 515, 90, 18),
+    Rect2(1040, 535, 155, 18), Rect2(1850, 535, 150, 18),
+    Rect2(2860, 520, 180, 18), Rect2(3350, 505, 150, 18),
+    Rect2(4450, 535, 180, 18), Rect2(5650, 520, 190, 18),
+    Rect2(6800, 535, 160, 18)
 ]
 
 var cells: Array[Vector2] = []
