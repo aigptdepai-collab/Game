@@ -40,6 +40,12 @@ var enemy_atlas: Texture2D
 var map_textures: Array[Texture2D] = []
 var map_positions: Array[float] = [0.0, 749.0, 1678.0, 2550.0, 3915.0, 5186.0, 6551.0]
 var map_loaded: bool = false
+var ground_profile: PackedVector2Array = PackedVector2Array([
+    Vector2(0, 590), Vector2(749, 590), Vector2(1180, 612),
+    Vector2(1678, 635), Vector2(2100, 635), Vector2(2550, 625),
+    Vector2(3000, 625), Vector2(3915, 625), Vector2(4700, 625),
+    Vector2(5186, 625), Vector2(6551, 625), Vector2(7916, 625)
+])
 var animation_clock: float = 0.0
 var animation_frame: int = 0
 var enemy_soldiers: Array[Dictionary] = [
@@ -124,6 +130,16 @@ func _draw_map_background(size: Vector2) -> void:
             continue
         draw_texture(texture, Vector2(x, 0.0))
 
+func _ground_y_at(world_x: float) -> float:
+    if world_x <= ground_profile[0].x:
+        return ground_profile[0].y
+    for i in range(ground_profile.size() - 1):
+        var a: Vector2 = ground_profile[i]
+        var b: Vector2 = ground_profile[i + 1]
+        if world_x <= b.x:
+            return lerpf(a.y, b.y, inverse_lerp(a.x, b.x, world_x))
+    return ground_profile[ground_profile.size() - 1].y
+
 func _process(delta: float) -> void:
     elapsed += delta
     if notice_timer > 0.0:
@@ -160,7 +176,19 @@ func _physics_process(delta: float) -> void:
         jump_buffer = maxf(0.0, jump_buffer - delta)
 
     if on_floor:
-        coyote_timer = 0.12
+        var standing_on_platform: bool = false
+        for platform: Rect2 in platforms:
+            var overlaps_platform: bool = player_x + PLAYER_HALF_W > platform.position.x and player_x - PLAYER_HALF_W < platform.end.x
+            if overlaps_platform and absf(player_y + PLAYER_HEIGHT - platform.position.y) < 9.0:
+                standing_on_platform = true
+                break
+        if not standing_on_platform:
+            var terrain_y: float = _ground_y_at(player_x)
+            if player_y + PLAYER_HEIGHT <= terrain_y + 8.0:
+                player_y = terrain_y - PLAYER_HEIGHT
+            else:
+                on_floor = false
+        coyote_timer = 0.12 if on_floor else maxf(0.0, coyote_timer - delta)
     else:
         coyote_timer = maxf(0.0, coyote_timer - delta)
 
@@ -187,6 +215,16 @@ func _physics_process(delta: float) -> void:
                 velocity_y = 0.0
                 on_floor = true
                 break
+        var terrain_y: float = _ground_y_at(player_x)
+        if not on_floor and feet_before <= terrain_y + 8.0 and feet_after >= terrain_y:
+            player_y = terrain_y - PLAYER_HEIGHT
+            velocity_y = 0.0
+            on_floor = true
+
+    for i in range(enemy_soldiers.size()):
+        var enemy: Dictionary = enemy_soldiers[i]
+        enemy["y"] = _ground_y_at(float(enemy["x"])) - PLAYER_HEIGHT
+        enemy_soldiers[i] = enemy
 
     _check_enemy_contact()
     _check_checkpoint()
@@ -424,14 +462,14 @@ func _take_damage(fall: bool = false) -> void:
         game_state = "game_over"
         return
     player_x = checkpoint_x
-    player_y = FLOOR_Y - PLAYER_HEIGHT
+    player_y = _ground_y_at(player_x) - PLAYER_HEIGHT
     velocity_y = 0.0
     on_floor = true
     _show_notice("SYSTEM REBOOT // -1 LIFE")
 
 func _restart_level() -> void:
     player_x = 150.0
-    player_y = FLOOR_Y - PLAYER_HEIGHT
+    player_y = _ground_y_at(player_x) - PLAYER_HEIGHT
     velocity_y = 0.0
     camera_x = 0.0
     on_floor = true
