@@ -150,6 +150,13 @@ func _draw_map_background(size: Vector2) -> void:
             var right_start: float = width - right_overlap
             draw_texture_rect_region(texture, Rect2(x + right_start, 0.0, right_overlap, texture.get_height()), Rect2(right_start, 0.0, right_overlap, texture.get_height()), Color(1, 1, 1, 0.5))
 
+func _reset_enemy_wave() -> void:
+    enemy_soldiers.clear()
+    var positions: Array[float] = [420, 690, 930, 1210, 1510, 1780, 2070, 2360, 2670, 2980, 3290, 3610, 3940, 4260, 4590, 4930, 5280, 5620, 5960, 6310, 6650, 6990, 7330, 7660]
+    for i in range(positions.size()):
+        var ex: float = positions[i]
+        enemy_soldiers.append({"x": ex, "origin": ex, "y": _ground_y_at(ex) - PLAYER_HEIGHT, "dir": -1.0 if i % 2 == 0 else 1.0, "hp": 4 if i % 4 == 0 else 3, "cooldown": 0.45 + float(i % 4) * 0.16, "speed": 58.0 + float(i % 3) * 9.0})
+
 func _ground_y_at(world_x: float) -> float:
     if world_x <= ground_profile[0].x:
         return ground_profile[0].y
