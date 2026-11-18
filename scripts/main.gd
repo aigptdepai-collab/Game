@@ -29,6 +29,8 @@ var checkpoint_reached: bool = false
 var damage_flash: float = 0.0
 var notice_timer: float = 0.0
 var notice_text: String = ""
+var smart_hint_used: bool = false
+var smart_hint_text: String = "الگوی شلیک دشمن را زیر نظر بگیر؛ عجله نکن."
 var touch_actions: Dictionary = {}
 var keyboard_jump_was_down: bool = false
 var particles: Array[Dictionary] = []
@@ -297,6 +299,9 @@ func _input(event: InputEvent) -> void:
                 if _point_in_rect(pos, Rect2(size.x * 0.34, size.y * 0.48, size.x * 0.32, 62)):
                     _restart_level()
                 return
+            if _point_in_rect(pos, Rect2(size.x - 174, 18, 64, 54)):
+                _show_smart_hint()
+                return
             if _point_in_rect(pos, Rect2(size.x - 94, 18, 72, 58)):
                 game_state = "paused"
                 return
@@ -312,7 +317,9 @@ func _input(event: InputEvent) -> void:
         else:
             touch_actions.erase(event.index)
     elif event is InputEventKey and event.pressed and not event.echo:
-        if event.keycode == KEY_ESCAPE or event.keycode == KEY_P:
+        if event.keycode == KEY_H and game_state == "playing":
+            _show_smart_hint()
+        elif event.keycode == KEY_ESCAPE or event.keycode == KEY_P:
             if game_state == "playing":
                 game_state = "paused"
             elif game_state == "paused":
@@ -504,6 +511,7 @@ func _restart_level() -> void:
     collected = 0
     checkpoint_x = 150.0
     checkpoint_reached = false
+    smart_hint_used = false
     invulnerable_timer = 0.0
     game_state = "playing"
     for i in range(collected_cells.size()):
@@ -519,6 +527,14 @@ func _restart_level() -> void:
 func _show_notice(message: String) -> void:
     notice_text = message
     notice_timer = 2.0
+
+func _show_smart_hint() -> void:
+    if smart_hint_used:
+        _show_notice("INTEL DEPLETED")
+        return
+    smart_hint_used = true
+    _show_notice(smart_hint_text)
+    notice_timer = 3.0
 
 func _spawn_burst(at: Vector2, color: Color, amount: int) -> void:
     for i in range(amount):
@@ -747,6 +763,9 @@ func _draw_hud(size: Vector2) -> void:
     draw_rect(Rect2(size.x * 0.36, 28, size.x * 0.28, 8), Color(0.16, 0.25, 0.34, 0.9))
     draw_rect(Rect2(size.x * 0.36, 28, size.x * 0.28 * progress, 8), Color("#35d9e8"))
     draw_string(ThemeDB.fallback_font, Vector2(size.x * 0.36, 54), "MISSION PROGRESS  %d%%" % int(progress * 100.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#d0b58b"))
+    draw_rect(Rect2(size.x - 174, 18, 64, 54), Color(0.015, 0.045, 0.09, 0.86))
+    draw_rect(Rect2(size.x - 174, 18, 64, 54), Color("#35d9e8") if not smart_hint_used else Color("#42515b"), false, 2.0)
+    draw_string(ThemeDB.fallback_font, Vector2(size.x - 154, 52), "?" if not smart_hint_used else "—", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color("#c5fbff"))
     draw_rect(Rect2(size.x - 88, 18, 70, 54), Color(0.015, 0.045, 0.09, 0.86))
     draw_rect(Rect2(size.x - 88, 18, 70, 54), Color(0.2, 0.7, 0.8, 0.5), false, 2.0)
     draw_string(ThemeDB.fallback_font, Vector2(size.x - 70, 51), "II", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("#c5fbff"))
